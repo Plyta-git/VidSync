@@ -10,6 +10,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClientKnownRequestError } from 'generated/prisma/runtime/library';
 
+const debugDelay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 @Injectable()
 export class AuthService {
   constructor(
@@ -19,6 +21,7 @@ export class AuthService {
   ) {}
 
   async signup(dto: AuthDto) {
+    await debugDelay(2000);
     const hash = await argon.hash(dto.password);
 
     try {
@@ -28,7 +31,6 @@ export class AuthService {
           hash,
         },
       });
-
       return this.signToken(user.id, user.email);
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
@@ -42,6 +44,7 @@ export class AuthService {
   }
 
   async signin(dto: AuthDto) {
+    await debugDelay(2000);
     const user = await this.prisma.user.findUnique({
       where: {
         email: dto.email,
@@ -55,7 +58,6 @@ export class AuthService {
     if (!passwordMatches) {
       throw new ForbiddenException('Invalid credentials');
     }
-
     return this.signToken(user.id, user.email);
   }
 

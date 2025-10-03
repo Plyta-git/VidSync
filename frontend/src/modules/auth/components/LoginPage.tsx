@@ -4,9 +4,10 @@ import { useAuth } from '../hooks/useAuth';
 import { LoginForm } from './LoginForm';
 
 export function LoginPage() {
-  const { isAuthenticated, status } = useAuth();
+  const { isAuthenticated, status, hasInitialized } = useAuth();
+  const isRestoringSession = status === 'checking' && !hasInitialized;
 
-  if (status === 'checking') {
+  if (isRestoringSession) {
     return <LoadingScreen />;
   }
 

@@ -5,6 +5,7 @@ export function useAuth() {
   return useAuthStore(
     useShallow((state) => ({
       status: state.status,
+      hasInitialized: state.hasInitialized,
       isAuthenticated: state.status === 'authenticated',
       token: state.token,
       user: state.user,

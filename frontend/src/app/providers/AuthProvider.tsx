@@ -6,15 +6,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (useAuthStore.persist.hasHydrated()) {
-      initialize();
+      void initialize();
       return;
     }
 
-    const unsubscribe = useAuthStore.persist.onFinish(() => {
-      initialize();
+    const unsubscribe = useAuthStore.persist.onFinishHydration?.(() => {
+      void initialize();
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe?.();
+    };
   }, [initialize]);
 
   return children;
