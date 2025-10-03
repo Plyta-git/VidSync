@@ -1,16 +1,6 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import axios, { AxiosError, type AxiosInstance } from 'axios';
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-
-export interface HttpRequestOptions<TBody = unknown> {
-  method?: HttpMethod;
-  token?: string | null;
-  body?: TBody;
-  headers?: Record<string, string>;
-}
-
-export type HttpResponseShape<TData> = TData;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 export class HttpError extends Error {
   constructor(
@@ -23,28 +13,17 @@ export class HttpError extends Error {
   }
 }
 
-function buildHeaders(token?: string | null, headers?: Record<string, string>) {
-  const merged = new Headers({
-    'Content-Type': 'application/json',
-    ...headers,
-  });
-
-  if (token) {
-    merged.set('Authorization', `Bearer ${token}`);
+function extractErrorMessage(details: unknown, fallback: string) {
+  if (!details) {
+    return fallback;
   }
 
-  return merged;
-}
-
-function parseErrorMessage(payload: unknown, statusText: string) {
-  if (!payload) return statusText;
-
-  if (typeof payload === 'string') {
-    return payload;
+  if (typeof details === 'string') {
+    return details;
   }
 
-  if (typeof payload === 'object' && payload !== null) {
-    const maybeMessage = (payload as { message?: unknown }).message;
+  if (typeof details === 'object') {
+    const maybeMessage = (details as { message?: unknown }).message;
 
     if (Array.isArray(maybeMessage)) {
       return maybeMessage.join(', ');
@@ -55,32 +34,41 @@ function parseErrorMessage(payload: unknown, statusText: string) {
     }
   }
 
-  return statusText;
+  return fallback;
 }
 
-export async function httpRequest<TResponse, TBody = unknown>(
-  path: string,
-  options: HttpRequestOptions<TBody> = {},
-): Promise<HttpResponseShape<TResponse>> {
-  const { method = 'GET', body, token, headers } = options;
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false,
+});
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: buildHeaders(token, headers),
-    body: body ? JSON.stringify(body) : undefined,
-  });
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response) {
+      const { status, statusText, data } = error.response;
+      const message = extractErrorMessage(data, statusText);
+      throw new HttpError(status, message, data);
+    }
 
-  const isJson = response.headers
-    .get('Content-Type')
-    ?.includes('application/json');
-  const payload = isJson
-    ? await response.json().catch(() => undefined)
-    : await response.text().catch(() => undefined);
+    if (error.request) {
+      throw new HttpError(0, 'Unable to reach the server. Check your network connection.', error.message);
+    }
 
-  if (!response.ok) {
-    const message = parseErrorMessage(payload, response.statusText);
-    throw new HttpError(response.status, message, payload);
+    throw new HttpError(0, error.message);
+  },
+);
+
+export function setAuthToken(token: string | null) {
+  if (token) {
+    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    return;
   }
 
-  return payload as HttpResponseShape<TResponse>;
+  delete apiClient.defaults.headers.common.Authorization;
 }
+
+export { apiClient };
