@@ -1,0 +1,151 @@
+# VidSync
+
+VidSync is a full-stack project composed of a React + Vite frontend and a NestJS backend. The repository is organised around clear feature boundaries so that UI, domain logic, and infrastructure remain discoverable and maintainable.
+
+## Frontend Directory Structure
+
+- `frontend/`
+  - `public/`
+    - `index.html` static entry point served by Vite.
+  - `src/`
+    - `app/` application bootstrap (root component, routing, global providers).
+      - `routes/` route definitions and lazy route loaders.
+      - `providers/` shared React providers (query client, theming, etc.).
+    - `lib/`
+      - `api/`
+        - `httpClient.ts` Axios helper with auth and refresh interceptors.
+        - `socketClient.ts` Socket.IO client setup with reconnection logic.
+      - `timecode.ts` helpers for converting between HH:MM:SS and seconds.
+      - `validators.ts` optional form validation helpers (Zod/Yup).
+    - `shared/`
+      - `components/` reusable UI elements (Button, Dialog, Layout, Loader).
+      - `hooks/` cross-cutting hooks (useDebounce, usePaginatedList, useEventListener, ...).
+      - `styles/` global stylesheets and Tailwind configuration.
+    - `store/`
+      - `appStore.ts` global UI state such as theme and toast notifications.
+    - `modules/` feature-based slices that package UI, hooks, services, and state.
+      - `auth/`
+        - `components/` login and session guard components.
+        - `hooks/` authentication hooks (`useAuth`, `useSession`).
+        - `services/` API clients for login, refresh, logout flows.
+        - `store/` persisted session store and selectors.
+      - `users/`
+        - `components/` user profile and table components.
+        - `hooks/` data hooks such as `useUser` and `useMyProfile`.
+        - `services/` CRUD clients for user resources.
+        - `store/` filters and sorting state for user listings.
+      - `groups/`
+        - `components/` group listing and member management.
+        - `hooks/` membership and permission hooks.
+        - `services/` CRUD clients for groups and roles.
+        - `store/` UI state for the groups module.
+      - `projects/`
+        - `components/` project list and project detail views.
+        - `hooks/` hooks for personal and group projects.
+        - `services/` CRUD clients for project entities.
+        - `store/` pagination, sorting, and filters for projects.
+      - `tags/`
+        - `components/` tag picker and management UI.
+        - `hooks/` tag filtering and creation hooks.
+        - `services/` CRUD clients for tags.
+        - `store/` tag filter and quick-create state.
+      - `video/`
+        - `components/` synchronized player, timeline segments, markers, inline tag picker.
+        - `hooks/` realtime sync, segment operations, marker management.
+        - `services/` video metadata and project linkage APIs.
+        - `store/` playback, sync, segment, and marker stores.
+    - `types/` local type declarations (use OpenAPI generation if available).
+    - `main.tsx` Vite entry that renders the React application.
+    - `vite.config.ts` (or `next.config.js`) build configuration.
+    - `tsconfig.json` TypeScript compiler options for the frontend.
+    - `package.json` frontend dependencies and scripts.
+
+## Backend Directory Structure
+
+- `backend/`
+  - `prisma/` (or `orm/`) database schema and migrations.
+    - `schema.prisma` (or `migrations/`) schema definitions and migration files.
+    - `seed.ts` optional database seed runner.
+  - `src/`
+    - `main.ts` NestJS bootstrap file.
+    - `app.module.ts` root module wiring.
+    - `config/` configuration and environment validation.
+      - `configuration.ts` configuration factory.
+      - `validation.schema.ts` environment schema validation.
+    - `common/` cross-cutting concerns shared across modules.
+      - `guards/` JWT guard, role-based guards for projects and groups.
+      - `interceptors/` logging, serialization, and other interceptors.
+      - `pipes/` parsing and validation pipes.
+      - `filters/` global exception filters.
+      - `decorators/` utilities such as `@CurrentUser`, `@ProjectMember`, `@GroupAdmin`.
+    - `infra/`
+      - `database/` repository adapters or ORM helpers.
+      - `caching/` Redis or other cache integrations.
+      - `websockets/`
+        - `adapter.ts` Socket.IO adapter (e.g., Redis adapter for scale).
+        - `rooms.service.ts` room management, presence, throttling.
+    - `modules/`
+      - `auth/`
+        - `auth.controller.ts` `/auth` endpoints.
+        - `auth.service.ts` login, refresh, logout workflows.
+        - `strategies/` JWT strategy, refresh strategy, optional OAuth handlers.
+        - `dto/` data transfer objects (login, register, token payloads).
+      - `users/`
+        - `users.controller.ts`
+        - `users.service.ts` CRUD operations for users and profiles.
+        - `dto/`
+        - `entities/` user entity definitions.
+      - `groups/`
+        - `groups.controller.ts`
+        - `groups.service.ts` group management and role assignments.
+        - `dto/`
+        - `entities/` group and membership entities.
+      - `projects/`
+        - `projects.controller.ts`
+        - `projects.service.ts` project workflows for users and groups.
+        - `dto/`
+        - `entities/` project entities.
+      - `videos/`
+        - `videos.controller.ts` video metadata endpoints and project linking.
+        - `videos.service.ts`
+        - `dto/`
+        - `entities/` video entity definitions.
+      - `timelines/`
+        - `segments/`
+          - `segments.controller.ts`
+          - `segments.service.ts` CRUD for timeline segments (start, end, label).
+          - `dto/`
+          - `entities/` segment entities.
+        - `markers/`
+          - `markers.controller.ts`
+          - `markers.service.ts` CRUD for timeline markers and listings.
+          - `dto/`
+          - `entities/` marker and marker-tag pivot entities.
+        - `tags/`
+          - `tags.controller.ts`
+          - `tags.service.ts` CRUD for tags and marker assignments.
+          - `dto/`
+          - `entities/` tag entities.
+      - `realtime/`
+        - `video-sync.gateway.ts` Socket.IO gateway handling join/play/pause/seek and marker events.
+        - `dtos/` event payload definitions.
+    - `policies/` optional CASL/ability-based authorization policies.
+    - `utils/` domain helpers and utility functions.
+  - `test/` E2E and unit tests (Supertest, Jest).
+  - `nest-cli.json` Nest CLI configuration.
+  - `tsconfig.json` backend TypeScript configuration.
+  - `package.json` backend dependencies and scripts.
+
+## Getting Started
+
+- Install dependencies: `npm install` inside both `frontend/` and `backend/`.
+- Configure environment variables following the samples in each package.
+- Run the development servers:
+  - Frontend: `npm run dev` in `frontend/`.
+  - Backend: `npm run start:dev` in `backend/`.
+
+## Conventions
+
+- Follow feature-based organisation: keep UI, hooks, services, and state together per domain module.
+- Reuse shared libraries from `src/lib` and `src/shared` to avoid duplication.
+- Prefer strongly typed DTOs and validation schemas on the backend to keep contracts stable.
