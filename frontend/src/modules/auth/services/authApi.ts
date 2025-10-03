@@ -1,4 +1,4 @@
-import { apiClient } from '../../../lib/http/client';
+import { apiClient } from '../../../lib/api/httpClient';
 import type {
   AuthCredentials,
   AuthTokens,

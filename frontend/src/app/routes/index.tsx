@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { ProtectedRoute } from '../components/ProtectedRoute';
-import { LoginPage } from '../pages/LoginPage';
-import { ProfilePage } from '../pages/ProfilePage';
+import { ProtectedRoute } from '../../shared/components/ProtectedRoute';
+import { LoginPage } from '../../modules/auth/components/LoginPage';
+import { ProfilePage } from '../../modules/users/components/ProfilePage';
 
 export function AppRoutes() {
   return (

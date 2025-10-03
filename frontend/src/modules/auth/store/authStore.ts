@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { fetchCurrentUser, signIn as requestSignIn } from '../api/authApi';
+import { fetchCurrentUser, signIn as requestSignIn } from '../services/authApi';
 import type { AuthCredentials, UserProfile } from '../types/auth';
-import { setAuthToken } from '../../../lib/http/client';
+import { setAuthToken } from '../../../lib/api/httpClient';
 
 export type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 

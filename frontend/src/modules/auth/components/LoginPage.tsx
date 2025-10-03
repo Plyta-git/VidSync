@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
-import { LoadingScreen } from '../components/LoadingScreen';
-import { LoginForm } from '../features/auth/components/LoginForm';
-import { useAuth } from '../features/auth/hooks/useAuth';
+import { LoadingScreen } from '../../../shared/components/LoadingScreen';
+import { useAuth } from '../hooks/useAuth';
+import { LoginForm } from './LoginForm';
 
 export function LoginPage() {
   const { isAuthenticated, status } = useAuth();

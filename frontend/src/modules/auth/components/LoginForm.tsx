@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { HttpError } from '../../../lib/http/client';
+import { HttpError } from '../../../lib/api/httpClient';
 
 function validateEmail(value: string) {
   const pattern = /.+@.+\..+/;

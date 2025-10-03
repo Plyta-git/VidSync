@@ -1,5 +1,5 @@
 import { type PropsWithChildren, useEffect } from 'react';
-import { useAuthStore } from '../../features/auth/store/authStore';
+import { useAuthStore } from '../../modules/auth/store/authStore';
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const initialize = useAuthStore((state) => state.initialize);
