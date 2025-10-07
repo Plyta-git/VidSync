@@ -1,47 +1,97 @@
-import { type FormEvent, useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { type FormEvent, useMemo, useState } from 'react';
 import { HttpError } from '../../../lib/api/httpClient';
+import {
+  hasFieldErrors,
+  normalizeEmail,
+  validateEmail,
+  validatePassword,
+} from '../utils/validation';
+import { AuthFormField } from './AuthFormField';
+import { useAuth } from '../hooks/useAuth';
 
-function validateEmail(value: string) {
-  const pattern = /.+@.+\..+/;
-  return pattern.test(value);
+type FormField = 'email' | 'password';
+
+type FormValues = Record<FormField, string>;
+
+type FieldErrors = Record<FormField, string | null>;
+
+const INITIAL_VALUES: FormValues = {
+  email: '',
+  password: '',
+};
+
+const INITIAL_TOUCHED_STATE: Record<FormField, boolean> = {
+  email: false,
+  password: false,
+};
+
+const FIELD_IDS = {
+  email: 'login-email',
+  password: 'login-password',
+} satisfies Record<FormField, string>;
+
+interface LoginFormProps {
+  onSwitchToRegister?: () => void;
 }
 
-export function LoginForm() {
+export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
+  const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
+  const [touched, setTouched] = useState<Record<FormField, boolean>>(
+    INITIAL_TOUCHED_STATE,
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const rawErrors = useMemo<FieldErrors>(
+    () => ({
+      email: validateEmail(values.email),
+      password: validatePassword(values.password),
+    }),
+    [values.email, values.password],
+  );
+
+  const visibleErrors: FieldErrors = {
+    email: touched.email ? rawErrors.email : null,
+    password: touched.password ? rawErrors.password : null,
+  };
+  const hasBlockingErrors = hasFieldErrors(rawErrors);
+
+  const handleBlur = (field: FormField) => () => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleChange = (field: FormField) => (value: string) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
+    setSubmitError(null);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setTouched({ email: true, password: true });
 
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
-
-    if (!trimmedEmail || !trimmedPassword) {
-      setFormError('Wpisz adres e-mail i haslo.');
+    if (hasBlockingErrors) {
+      setSubmitError(
+        'Please resolve the highlighted issues before continuing.',
+      );
       return;
     }
 
-    if (!validateEmail(trimmedEmail)) {
-      setFormError('Adres e-mail ma nieprawidlowy format.');
-      return;
-    }
-
-    setFormError(null);
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      await login({ email: trimmedEmail, password: trimmedPassword });
+      await login({
+        email: normalizeEmail(values.email),
+        password: values.password,
+      });
     } catch (error) {
       if (error instanceof HttpError) {
-        setFormError(error.message || 'Nie udalo sie zalogowac.');
+        setSubmitError(error.message || 'Unable to sign in.');
       } else if (error instanceof Error) {
-        setFormError(error.message);
+        setSubmitError(error.message);
       } else {
-        setFormError('Nie udalo sie zalogowac. Sprobuj ponownie pozniej.');
+        setSubmitError('Unable to sign in. Please try again later.');
       }
     } finally {
       setIsSubmitting(false);
@@ -49,62 +99,74 @@ export function LoginForm() {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="w-full max-w-sm space-y-6 rounded-lg bg-base-100 p-8 shadow-lg"
-    >
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-base-content">
-          Zaloguj sie
-        </h1>
-        <p className="text-sm text-base-content/70">
-          Uzyskaj dostep do swojego profilu i projektow.
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <header className="space-y-4 text-base-content">
+        <span className="badge badge-outline badge-primary uppercase tracking-[0.4em] text-xs">
+          Welcome back
+        </span>
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Sign in</h1>
+        <p className="text-sm text-base-content/70 md:text-base">
+          Enter your credentials to continue syncing your videos across every
+          device.
         </p>
-      </div>
+      </header>
 
-      <label className="form-control">
-        <div className="label">
-          <span className="label-text">Adres e-mail</span>
-        </div>
-        <input
+      <div className="space-y-4">
+        <AuthFormField
+          id={FIELD_IDS.email}
+          name="email"
+          label="Email address"
           type="email"
           autoComplete="email"
-          className="input input-bordered"
-          placeholder="jan.kowalski@example.com"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          placeholder="you@example.com"
+          value={values.email}
+          error={visibleErrors.email}
+          onChange={handleChange('email')}
+          onBlur={handleBlur('email')}
           required
         />
-      </label>
 
-      <label className="form-control">
-        <div className="label">
-          <span className="label-text">Haslo</span>
-        </div>
-        <input
+        <AuthFormField
+          id={FIELD_IDS.password}
+          name="password"
+          label="Password"
           type="password"
           autoComplete="current-password"
-          className="input input-bordered"
           placeholder="********"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          value={values.password}
+          error={visibleErrors.password}
+          onChange={handleChange('password')}
+          onBlur={handleBlur('password')}
           required
         />
-      </label>
+      </div>
 
-      {formError ? (
-        <div className="alert alert-error text-sm">
-          <span>{formError}</span>
+      {submitError ? (
+        <div role="alert" className="alert alert-error">
+          <span>{submitError}</span>
         </div>
       ) : null}
 
-      <button
-        type="submit"
-        className="btn btn-primary w-full"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Logowanie...' : 'Zaloguj sie'}
-      </button>
+      <div className="space-y-3">
+        <button
+          type="submit"
+          className="btn btn-primary btn-block"
+          disabled={isSubmitting || hasBlockingErrors}
+        >
+          {isSubmitting ? 'Signing in...' : 'Sign in'}
+        </button>
+
+        <p className="text-center text-sm text-base-content/70">
+          Don&apos;t have an account yet?{' '}
+          <button
+            type="button"
+            onClick={onSwitchToRegister}
+            className="btn btn-link px-0 text-primary"
+          >
+            Create one
+          </button>
+        </p>
+      </div>
     </form>
   );
 }

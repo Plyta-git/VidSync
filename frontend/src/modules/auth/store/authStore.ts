@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { fetchCurrentUser, signIn as requestSignIn } from '../services/authApi';
+import {
+  fetchCurrentUser,
+  signIn as requestSignIn,
+  signUp as requestSignUp,
+} from '../services/authApi';
 import type { AuthCredentials, UserProfile } from '../types/auth';
 import { setAuthToken } from '../../../lib/api/httpClient';
 
@@ -13,11 +17,15 @@ interface AuthStoreState {
   hasInitialized: boolean;
   initialize: () => Promise<void>;
   login: (credentials: AuthCredentials) => Promise<void>;
+  register: (credentials: AuthCredentials) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<UserProfile>;
 }
 
-const initialState: Pick<AuthStoreState, 'status' | 'token' | 'user' | 'hasInitialized'> = {
+const initialState: Pick<
+  AuthStoreState,
+  'status' | 'token' | 'user' | 'hasInitialized'
+> = {
   status: 'checking',
   token: null,
   user: null,
@@ -71,6 +79,29 @@ export const useAuthStore = create<AuthStoreState>()(
 
         try {
           const { accessToken } = await requestSignIn(credentials);
+          setAuthToken(accessToken);
+
+          const user = await fetchCurrentUser();
+          set({
+            status: 'authenticated',
+            token: accessToken,
+            user,
+          });
+        } catch (error) {
+          setAuthToken(null);
+          set({
+            status: 'unauthenticated',
+            token: null,
+            user: null,
+          });
+          throw error;
+        }
+      },
+      async register(credentials) {
+        set({ status: 'checking' });
+
+        try {
+          const { accessToken } = await requestSignUp(credentials);
           setAuthToken(accessToken);
 
           const user = await fetchCurrentUser();
