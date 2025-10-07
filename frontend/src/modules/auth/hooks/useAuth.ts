@@ -10,6 +10,7 @@ export function useAuth() {
       token: state.token,
       user: state.user,
       login: state.login,
+      register: state.register,
       logout: state.logout,
       refreshUser: state.refreshUser,
     })),
