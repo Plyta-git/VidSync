@@ -13,7 +13,7 @@ const FEATURE_HIGHLIGHTS = [
   'Keep every project organized with secure cloud workspaces.',
 ];
 
-export function LoginPage() {
+export function AuthPage() {
   const { isAuthenticated, status, hasInitialized } = useAuth();
   const [formType, setFormType] = useState<AuthFormType>('login');
   const isRestoringSession = status === 'checking' && !hasInitialized;
